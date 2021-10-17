@@ -55,32 +55,43 @@ char **free_list(char **text)
 }
 
 
-int main()
+int check_exit(char **list)
 {
-	int i = 0;
-    char **elem = NULL;
-//	while(i > 0) {
-		elem = get_list();
-//		if(strcmp(elem[0], "exit") || strcmp(elem[0],"quit")) {
-//			break;
-//		}
-	while(elem[i] != NULL) {
-		if (fork() > 0) {
-			wait NULL;
-		} else {
-			if(execvp(elem[0], elem) < 0) {
-				perror("exec failed");
-				return 1;
-			}
+	if (list == NULL)
+		return 0;
+	if (list[0] == NULL)
+		return 0;
+	if (!strcmp(list[0], "exit") || !strcmp(list[0], "quit"))
+		return 1;
+	return 0;
+}
+
+
+int exec_process(char **list)
+{
+	if (fork() > 0)
+		wait(NULL);
+	else {
+		if (execvp(list[0], list) < 0) {
+			perror("Exec failed");
+			exit(1);
 		}
-	 putchar('\n');
-	i++;
 	}
-/*    int ind = 0;
-    do {
-    	printf("%s ", elem[ind++]);
-	} while(elem[ind] != NULL);
-*/
-	free_list(elem);
+	return 0;
+}
+
+int main(int argc, char **argv)
+{
+	while(1) {
+		char **command = get_list();
+		if(check_exit(command)) {
+			free_list(command);
+			break;
+		}
+		if (command && command[0]) {
+			exec_process(command);
+    		command = free_list(command);
+		}
+	}
     return 0;
 }
