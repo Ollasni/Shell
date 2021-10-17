@@ -1,66 +1,66 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
-
+#include <string.h>
 
 char *get_word(char *end)
 {
-	char ch;
-	size_t newsize = 0;
-	char *words = NULL;
-	if(!words) {
-		words = malloc((newsize + 1) * sizeof(char));
-	}
+    size_t len_w = 0;
+    char *word = NULL, ch;
+	if(!word) {
+        word = malloc((len_w + 1) * sizeof(char));
+    }
 	while(1) {
-	ch = getchar();
-	if (ch == '\t' || ch == '\n' || ch == ' ')
-		break;
-	words = realloc(words, (newsize + 1) * sizeof(char));
-	words[newsize] = ch;
-	newsize++;
-	}
-	*end = ch;
-	words = realloc(words, ((newsize + 1) * sizeof(char)));
-	words[newsize] = '\0';
-	return words;
-}
+    	ch = getchar();
+    	if (ch == ' ' || ch == '\t' || ch == '\n')
+    		break;
+        word = realloc(word, (len_w + 1) * sizeof(char));
+        word[len_w++] = ch;
+    }
+    word = realloc(word, (len_w + 1) * sizeof(char));
+    word[len_w + 1] = '\0';
+    *end = ch;
+    return word;
+};
 
 char **get_list()
 {
-	char **text = NULL;
-	int size = 0;
-	char *word;
-	char end_of_w = '0';
-	if(!text) {
-		text = malloc((size + 1) * sizeof(char*));
-	}
-	while(1) {
+    size_t len_tx = 0;
+    char **text = NULL, *word, end_of_w = 0;
+    if(!text) {
+        text = malloc((len_tx + 1) * sizeof(char*));
+    }
+    while(1)
+    {
 		if(end_of_w == '\n')
 			break;
-		text = realloc(text, (size + 1) * sizeof(char*));
-		word = get_word(&end_of_w);
-		text[size] = word;
-		size++;
-	}
-	text = realloc(*text, ((size + 1) * sizeof(char*)));
-	text[size] = '\0';
-	return text;
-}
+        text = realloc(text, (len_tx + 1) * sizeof(char*));
+        word = get_word(&end_of_w);
+        text[len_tx++] = word;
+    }
+    text = realloc(text, (len_tx + 1) * sizeof(char*));
+    text[len_tx] = '\0';
+    return text;
+};
 
-char **free_list(char **list)
+char **free_list(char **text)
 {
-        int ind = 0;
-        while(list[ind] != NULL) {
-                free(list[ind++]);
-        }
-        free(list);
+    int ind = 0;
+    while(text[ind] != NULL) {
+        free(text[ind++]);
+    }
+    free(text);
 }
 
-int main() {
-	char **word = get_list();
-	int i = 0;
-	while(word[i] != NULL)
-		printf("%s", word[i++]);
-	free_list(word);
-	return 0;
+
+int main()
+{
+    char **elem = get_list();
+    int ind = 0;
+    do {
+    	printf("%s ", elem[ind++]);
+	} while(elem[ind] != NULL);
+    putchar('\n');
+	free_list(elem);
+    return 0;
 }
