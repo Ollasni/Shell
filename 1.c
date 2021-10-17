@@ -47,12 +47,20 @@ char **get_list()
 	return text;
 }
 
-
+char **free_list(char **list)
+{
+        int ind = 0;
+        while(list[ind] != NULL) {
+                free(list[ind++]);
+        }
+        free(list);
+}
 
 int main() {
 	char **word = get_list();
 	int i = 0;
 	while(word[i] != NULL)
 		printf("%s", word[i++]);
+	free_list(word);
 	return 0;
 }
