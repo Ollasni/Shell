@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 char *get_word(char *end)
 {
@@ -55,12 +57,30 @@ char **free_list(char **text)
 
 int main()
 {
-    char **elem = get_list();
-    int ind = 0;
+	int i = 0;
+    char **elem = NULL;
+//	while(i > 0) {
+		elem = get_list();
+//		if(strcmp(elem[0], "exit") || strcmp(elem[0],"quit")) {
+//			break;
+//		}
+	while(elem[i] != NULL) {
+		if (fork() > 0) {
+			wait NULL;
+		} else {
+			if(execvp(elem[0], elem) < 0) {
+				perror("exec failed");
+				return 1;
+			}
+		}
+	 putchar('\n');
+	i++;
+	}
+/*    int ind = 0;
     do {
     	printf("%s ", elem[ind++]);
 	} while(elem[ind] != NULL);
-    putchar('\n');
+*/
 	free_list(elem);
     return 0;
 }
