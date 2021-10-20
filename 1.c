@@ -10,7 +10,7 @@ char *get_word(char *end)
     size_t len_w = 0;
     char *word = NULL, ch;
 	if(!word) {
-        word = malloc((len_w + 1) * sizeof(char));
+        word = malloc((len_w) * sizeof(char));
     }
 	while(1) {
     	ch = getchar();
@@ -30,7 +30,7 @@ char **get_list()
     size_t len_tx = 0;
     char **text = NULL, *word, end_of_w = 0;
     if(!text) {
-        text = malloc((len_tx + 1) * sizeof(char*));
+        text = malloc((len_tx) * sizeof(char*));
     }
     while(1)
     {
@@ -55,11 +55,9 @@ char **free_list(char **text)
 }
 
 
-int check_exit(char **list)
+int exit_proc(char **list)
 {
-	if (list == NULL)
-		return 0;
-	if (list[0] == NULL)
+	if (list == NULL || list[0] == NULL)
 		return 0;
 	if (!strcmp(list[0], "exit") || !strcmp(list[0], "quit"))
 		return 1;
@@ -67,10 +65,14 @@ int check_exit(char **list)
 }
 
 
-int exec_process(char **list)
+int exec_proc(char **list)
 {
+	int fd_in = 0, fd_out = 1;
+//	if()
+//		fd = open(file[0], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR)
 	if (fork() > 0)
 		wait(NULL);
+
 	else {
 		if (execvp(list[0], list) < 0) {
 			perror("Exec failed");
@@ -82,16 +84,13 @@ int exec_process(char **list)
 
 int main(int argc, char **argv)
 {
-	while(1) {
-		char **command = get_list();
-		if(check_exit(command)) {
-			free_list(command);
-			break;
-		}
-		if (command && command[0]) {
-			exec_process(command);
-    		command = free_list(command);
-		}
+	char **command = get_list();
+	while(exit_proc) {
+		//if (command && command[0]) {
+			exec_proc(command);
+		//}
+		command = get_list();
 	}
+	command = free_list(command);
     return 0;
 }
