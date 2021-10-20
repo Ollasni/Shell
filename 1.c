@@ -68,8 +68,6 @@ int exit_proc(char **list)
 int exec_proc(char **list)
 {
 	int fd_in = 0, fd_out = 1;
-//	if()
-//		fd = open(file[0], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR)
 	if (fork() > 0)
 		wait(NULL);
 
@@ -86,9 +84,7 @@ int main(int argc, char **argv)
 {
 	char **command = get_list();
 	while(exit_proc) {
-		//if (command && command[0]) {
 			exec_proc(command);
-		//}
 		command = get_list();
 	}
 	command = free_list(command);
