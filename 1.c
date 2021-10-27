@@ -20,6 +20,7 @@ char *get_word(char *end, char sign)
     		break;
 		if(ch == '<' || ch == '>') {
 			sign = ch;
+//			return sign;
 			ch = getchar();
 			while(1) {
 				if(ch != ' ')
@@ -68,7 +69,7 @@ char **get_list(char sign, char *in_out[])
         text[len_tx++] = word;
     }
     text = realloc(text, (len_tx + 1) * sizeof(char*));
-    text[len_tx] = '\0';
+    text[len_tx] = NULL;
     return text;
 };
 
@@ -85,6 +86,7 @@ char **free_list(char **text)
     while(text[ind] != NULL) {
         free(text[ind++]);
     }
+    free(text[ind]);
     free(text);
 }
 
@@ -137,6 +139,7 @@ int main(int argc, char **argv)
 	char **command = get_list(0, in_out);
 	while(!exit_proc(command)) {
 		exec_proc(command, in_out);
+		command = free_list(command);
 		command = get_list(0, in_out);
 	}
 	command = free_list(command);
