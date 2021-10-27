@@ -20,7 +20,6 @@ char *get_word(char *end, char sign)
     		break;
 		if(ch == '<' || ch == '>') {
 			sign = ch;
-//			return sign;
 			ch = getchar();
 			while(1) {
 				if(ch != ' ')
@@ -49,18 +48,18 @@ char **get_list(char sign, char *in_out[])
     {
 		if(end_of_w == '\n')
 			break;
-		word = get_word(&end_of_w, sign);
-		if(word && sign)
+		word = get_word(&end_of_w, &sign);
+		if(sign)
 		{
-			char *file = malloc(sizeof(char*) * strlen(word));
+			char *file = NULL;
+			size_t len_f = strlen(word);
+			file = malloc(len_f * sizeof(char*));
 			strcpy(file, word + 1);
-//char *redirection(char file, char sign, char in_out[]) {
-			if(!strcmp(&sign, "<"))
+			if(sign == '<')
 				in_out[0] = file;
-			else in_out[1] = file;
-//	return *in_out;
-//}*/
-//			redirection(file, sign, *in_out);
+			else {
+				 in_out[1] = file;
+			 }
 			sign = 0;
 			free(word);
 			continue;
@@ -72,13 +71,6 @@ char **get_list(char sign, char *in_out[])
     text[len_tx] = NULL;
     return text;
 };
-
-/*char *redirection(char file, char sign, char in_out[]) {
-	if(!strcmp(&sign, "<"))
-		in_out[0] = file;
-	else in_out[1] = file;
-	return *in_out;
-}*/
 
 char **free_list(char **text)
 {
@@ -100,26 +92,35 @@ int exit_proc(char **list)
 	return 0;
 }
 
+int redir_in(char *in_out[]) {
+	int x = 0;
+  	if(in_out[0]) {
+        x = open(in_out[0], O_RDONLY, S_IRUSR|S_IWUSR);
+        if(x < 0) {
+            perror("open input error");
+                return -1;
+        }
+    }
+    return x;
+}
+
+int redir_out(char *in_out[]) {
+	int x = 1;
+    if(in_out[1]) {
+        x = open(in_out[1], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+        if(x < 0) {
+            perror("open output error");
+                return -1;
+        }
+    }
+	return x;
+}
 
 int exec_proc(char **list, char *in_out[])
 {
 	int fd[2];
-	fd[1] = 1;
-    fd[0] = 0;
-	if(in_out[0]) {
-	    fd[0] = open(in_out[0], O_RDONLY, S_IRUSR|S_IWUSR);
-		if(fd[0] < 0) {
-			perror("open input error");
-				return 1;
-		}
-	}
-	if(in_out[1]) {
-		fd[1] = open(in_out[1], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
-		if(fd[1] < 0) {
-			perror("open output error");
-				return 1;
-		}
-	}
+	fd[0] = redir_in(in_out);
+	fd[1] = redir_out(in_out);
 	if (fork() > 0)
 		wait(NULL);
 	else  {
