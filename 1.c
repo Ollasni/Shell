@@ -7,13 +7,10 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
-char *get_word(char *end, char sign)
+char *get_word(char *end, char *sign)
 {
     size_t len_w = 0;
     char *word = NULL, ch;
-	if(!word) {
-        word = malloc((len_w) * sizeof(char));
-    }
 	while(1) {
     	ch = getchar();
     	if (ch == ' ' || ch == '\t' || ch == '\n')
@@ -21,11 +18,6 @@ char *get_word(char *end, char sign)
 		if(ch == '<' || ch == '>') {
 			sign = ch;
 			ch = getchar();
-			while(1) {
-				if(ch != ' ')
-					break;
-				ch = getchar();
-			}
 		}
         word = realloc(word, (len_w + 1) * sizeof(char));
         word[len_w++] = ch;
@@ -41,27 +33,18 @@ char **get_list(char sign, char *in_out[])
     size_t len_tx = 0;
     char **text = NULL, end_of_w = 0;
     char *word = NULL;
-	if(!text) {
-        text = malloc((len_tx) * sizeof(char*));
-    }
     while(1)
     {
 		if(end_of_w == '\n')
 			break;
 		word = get_word(&end_of_w, &sign);
-		if(sign)
-		{
-			char *file = NULL;
-			size_t len_f = strlen(word);
-			file = malloc(len_f * sizeof(char*));
-			strcpy(file, word + 1);
+		if(sign) {
 			if(sign == '<')
-				in_out[0] = file;
+				in_out[0] = word;
 			else {
-				 in_out[1] = file;
+				 in_out[1] = word;
 			 }
 			sign = 0;
-			free(word);
 			continue;
 		}
         text = realloc(text, (len_tx + 1) * sizeof(char*));
@@ -78,7 +61,6 @@ char **free_list(char **text)
     while(text[ind] != NULL) {
         free(text[ind++]);
     }
-    free(text[ind]);
     free(text);
 }
 
@@ -92,10 +74,10 @@ int exit_proc(char **list)
 	return 0;
 }
 
-int redir_in(char *in_out[]) {
+int redir_in(char *in_out) {
 	int x = 0;
-  	if(in_out[0]) {
-        x = open(in_out[0], O_RDONLY, S_IRUSR|S_IWUSR);
+  	if(in_out) {
+        x = open(in_out, O_RDONLY, S_IRUSR|S_IWUSR);
         if(x < 0) {
             perror("open input error");
                 return -1;
@@ -104,10 +86,10 @@ int redir_in(char *in_out[]) {
     return x;
 }
 
-int redir_out(char *in_out[]) {
+int redir_out(char *in_out) {
 	int x = 1;
-    if(in_out[1]) {
-        x = open(in_out[1], O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+    if(in_out) {
+        x = open(in_out, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
         if(x < 0) {
             perror("open output error");
                 return -1;
@@ -119,8 +101,8 @@ int redir_out(char *in_out[]) {
 int exec_proc(char **list, char *in_out[])
 {
 	int fd[2];
-	fd[0] = redir_in(in_out);
-	fd[1] = redir_out(in_out);
+	fd[0] = redir_in(in_out[0]);
+	fd[1] = redir_out(in_out[1]);
 	if (fork() > 0)
 		wait(NULL);
 	else  {
@@ -144,5 +126,5 @@ int main(int argc, char **argv)
 		command = get_list(0, in_out);
 	}
 	command = free_list(command);
-    return 0;
+    return  0;
 }
