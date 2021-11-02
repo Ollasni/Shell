@@ -41,7 +41,7 @@ char *get_word(char *end, char *sign, int *flag)
 		if(ch == ' ' || ch == '\t' || ch == '\n')
 			break;
 		if(ch == '<' || ch == '>') {
-			*sign = ch;
+			sign = ch;
 			ch = getchar();
 			skip_spaces(&ch);
 		}
@@ -70,19 +70,19 @@ char **get_list(char *sign, char *in_out[], char *end_of_w)
 	while(1) {
 		word = get_word(end_of_w, sign, &flag);
 //		exit(1);
-		for(int i = 0; word[i]; i++)
-			putchar(word[i]);
-		exit(1);
-		if(*sign && word) {
+//		for(int i = 0; word[i]; i++)
+//			putchar(word[i]);
+//		exit(1);
+		if(sign && word) {
 //			printf("%d", *sign);
 
-			if(*sign == '<') {
+			if(sign == '<') {
 				in_out[0] = word;
 			}
-			else if(*sign == '>') {
+			else if(sign == '>') {
 				in_out[1] = word;
 			}
-			*sign = 0;
+			sign = 0;
 			continue;
 		}
 		if(flag) {
@@ -108,7 +108,7 @@ char ***get_commands(char *in_out[], char ***mas_in_out)
 		text = get_list(sign, in_out, &end);
 		while(1) {
         	all_com = realloc(all_com, (num_com + 1) * sizeof(char**));
-			exit(1);
+//			exit(1);
         	mas_in_out = realloc(mas_in_out, (num_com + 1) * sizeof(char**));
         	mas_in_out[num_com] = in_out;
         	all_com[num_com++] = text;
@@ -148,9 +148,9 @@ int redir_in(char *in_out) {
 	int x = 0;
 	if(in_out) {
 		x = open(in_out, O_RDONLY, S_IRUSR|S_IWUSR);
-	if(x < 0) {
-		perror("open input error");
-		return -1;
+		if(x < 0) {
+			perror("open input error");
+			return -1;
 		}
 	}
 	return x;
@@ -160,9 +160,9 @@ int redir_out(char *in_out) {
 	int x = 1;
 	if(in_out) {
 		x = open(in_out, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
-	if(x < 0) {
-		perror("open output error");
-		return -1;
+		if(x < 0) {
+			perror("open output error");
+			return -1;
 		}
 	}
 	return x;
@@ -224,8 +224,8 @@ int main(int argc, char **argv)
 	char ***all_commands = get_commands(in_out, mas_in_out);
 	while(!exit_proc(all_commands)) {
 		//exec_proc(command, in_out);
-//		exec_proc_per_two_command(all_commands[0], all_commands[1], mas_in_out[0], mas_in_out[1]);
-		putline(all_commands);
+		exec_proc_per_two_command(all_commands[0], all_commands[1], mas_in_out[0], mas_in_out[1]);
+//		putline(all_commands);
 		all_commands = free_list(all_commands);
 		all_commands = get_commands(in_out, mas_in_out);
 //		putline(all_commands);
