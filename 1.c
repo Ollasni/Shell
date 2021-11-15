@@ -94,11 +94,11 @@ char **get_list(char *sign, char *in_out[], char *end_of_w)
 	return text;
 };
 
-char ***get_commands(char *in_out[])
+char ***get_commands(char *in_out[], int num_com)
 {
 		char ***all_com = NULL;
 		char **text = NULL;
-		int num_com = 0;
+		num_com = 0;
 		char sign = 0, end = 0;
 		text = get_list(&sign, in_out, &end);
 		while(1) {
@@ -156,21 +156,18 @@ int redir_out(char *in_out) {
 	return x;
 }
 
-int exec_proc_per_two_command(char *A[], char *B[], char *in_out[])
+/*int exec_proc_per_two_command(char *A[], char *B[], char *in_out[])
 {
 	int pipefd[2];
 	pipe(pipefd);
 	int fd[2];
 	fd[0] = redir_in(in_out[0]); //for A
 	fd[1] = redir_out(in_out[1]); //for B
-//	printf("%d %d" , fd[0], fd[1]);
 	if(fork() == 0) {
 		dup2(fd[0], 0);
 		dup2(pipefd[1], 1);
 		close(pipefd[0]);
 		close(pipefd[1]);
-//		close(fd[1]);
-//		close(fd[0]);
 		if(execvp(A[0], A) < 0) {
 			perror("Exec failed");
 			exit(1);
@@ -181,45 +178,93 @@ int exec_proc_per_two_command(char *A[], char *B[], char *in_out[])
 		dup2(pipefd[0], 0);
 		close(pipefd[0]);
 		close(pipefd[1]);
-//		close(fd[1]);
-//		close(fd[0]);
 		if(execvp(B[0], B) < 0) {
 			perror("Exec failed");
 			exit(1);
 		}
 	}
-//	close(fd[1]);
-//	close(fd[0]);
 	close(pipefd[1]);
 	close(pipefd[0]);
 	wait(NULL);
 	wait(NULL);
 	return 0;
+}*/
+
+int exec_single(char **cmd, int input_fd, int output_fd) {
+	pid_t pid;
+	pid = fork();
+	if(pid == 0) {
+		dup2(input_fd, 0);
+		dup2(output_fd, 1);
+		close(input_fd);
+		close(output_fd);
+		if(execvp(cmd[0], cmd) < 0) {
+			perror("Exec failed");
+			exit(1);
+		}
+	}
+	return pid;
+}
+
+void exec_all(char *in_out[], char ***cmd, int n) {
+	int fd[2];
+	fd[0] = redir_in(in_out[0]);
+	fd[1] = redir_out(in_out[1]);
+	int pid[n];
+	int pipefd[n][2];
+	for(int j = 0; j < n; ++j)
+		pipe(pipefd[j]);
+	pid[0] = exec_single(cmd[0], fd[0], pipefd[0][1]);
+	if (n > 2) {
+		for(int i = 1; i < n - 1; i++) {
+			pid[i] = exec_single(cmd[i - 1], pipefd[i - 1][0], pipefd[i][1]);
+			close(pipefd[i - 1][0]);
+			close(pipefd[i - 1][1]);
+		}
+	}
+	pid[n] = exec_single(cmd[n - 1], pipefd[n - 2][0], fd[1]);
+	close(pipefd[n - 2][0]);
+	close(pipefd[n - 2][1]);
+	close(pipefd[n - 1][0]);
+	close(pipefd[n - 1][1]);
+	for(int j = 0; j < n; j++)
+		waitpid(pid[n],  NULL, 0);
+	return;
 }
 
 void putline(char ***line)
 {
 	if (line == NULL)
 		return;
-	for (int i = 0; line[i]; i++){
+	for (int i = 0; line[i]; i++) {
 		for(int j = 0; line[i][j]; j++)
 			printf("%s ", line[i][j]);
 		printf("\n");
 	}
 }
 
+/*void change_directory(char ***cmd)
+{
+	char *home;
+	char *parent;
+	if(strcmp(cmd[0], "cd") == 0) {
+		if (cmd[1] == NULL || strcmp(cmd[0], "~") == 0) {
+			chdir(home);
+		} else {
+			chdir(cmd[1]);
+		}
+}*/
 
 int main(int argc, char **argv)
 {
+	int n = 0;
 	char *in_out[] = {NULL, NULL};
-	char ***all_commands = get_commands(in_out);
+	char ***all_commands = get_commands(in_out, n);
 	while(!exit_proc(all_commands)) {
-		//if(all_commands[0] && !all_commands[1])
-	//	exec_proc(all_commands[0], in_out);
+		exec_all(in_out, all_commands, n);
 //		putline(all_commands);
- 		exec_proc_per_two_command(all_commands[0], all_commands[1], in_out);
-//		putline(all_commands);
-		all_commands = get_commands(in_out);
+		all_commands = free_list(all_commands);
+		all_commands = get_commands(in_out, n);
 	}
 	all_commands = free_list(all_commands);
 	return  0;
