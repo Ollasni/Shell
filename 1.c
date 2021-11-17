@@ -7,7 +7,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
-
 /*int exec_proc(char **list, char *in_out[])
 {
 	int fd[2];
@@ -206,7 +205,7 @@ int exec_single(char **cmd, int input_fd, int output_fd) {
 	return pid;
 }
 
-void exec_all(char *in_out[], char ***cmd, int n) {
+int exec_all(char *in_out[], char ***cmd, int n) {
 	int fd[2];
 	fd[0] = redir_in(in_out[0]);
 	fd[1] = redir_out(in_out[1]);
@@ -229,7 +228,7 @@ void exec_all(char *in_out[], char ***cmd, int n) {
 	close(pipefd[n - 1][1]);
 	for(int j = 0; j < n; j++)
 		waitpid(pid[n],  NULL, 0);
-	return;
+	return 0;
 }
 
 void putline(char ***line)
@@ -243,24 +242,39 @@ void putline(char ***line)
 	}
 }
 
-/*void change_directory(char ***cmd)
+void change_directory(char ***cmd, char *home)
 {
-	char *home;
-	char *parent;
-	if(strcmp(cmd[0], "cd") == 0) {
-		if (cmd[1] == NULL || strcmp(cmd[0], "~") == 0) {
+	char s[100];
+	if(strcmp(cmd[0][0], "cd") == 0) {
+		if (cmd[0][1] == NULL || strcmp(cmd[0][0], "~") == 0) {
 			chdir(home);
 		} else {
-			chdir(cmd[1]);
+			chdir(cmd[0][1]);
 		}
-}*/
+	printf("%s\n", getcwd(s, 100));
+	}
+	return;
+}
 
 int main(int argc, char **argv)
 {
 	int n = 0;
 	char *in_out[] = {NULL, NULL};
 	char ***all_commands = get_commands(in_out, n);
+	char *home = getenv("HOME");
+//    if(strcmp(all_commands[0][0], "cd") == 0) {
+    //        putchar('1');
+  //      if (all_commands[0][1] == NULL || strcmp(all_commands[0][1], "~") == 0) {
+  //          putchar('2');
+    //        chdir(home);
+      //  } else {
+//                    putchar('3');
+        //    chdir(all_commands[0][1]);
+        //}
+ //   }
+
 	while(!exit_proc(all_commands)) {
+		change_directory(all_commands, home);
 		exec_all(in_out, all_commands, n);
 //		putline(all_commands);
 		all_commands = free_list(all_commands);
