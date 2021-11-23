@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 void skip_spaces(char *ch) {
 	while(*ch == ' ')
@@ -178,18 +179,9 @@ int exec_single(char **cmd, int input_fd, int output_fd) {
 	return pid;
 }
 
-//int exec_all(char *in_out[], char ***cmd, int *n) {
-//	printf("ea %d", *n);
-//	return 0;
-//}
-
 int *exec_all(char *in_out[], char ***cmd, int *n, int phone, int conv) {
-//	printf("%d", *n);
 	int *pid = malloc((*n) * sizeof(int));
 	int pipefd[*n + 1][2];
-	//printf("f%d", pipefd[0][0] = redir_in(in_out[0]));
-	//printf("s%d", pipefd[*n][1] = redir_out(in_out[1]));
-	//pid[0] = exec_single(cmd[0], redir_in(in_out[0]), redir_out(in_out[1]));
 	for(int i = 1; i <= *n; i++) {
 		if(i < *n)
 			pipe(pipefd[i]);
@@ -208,12 +200,17 @@ int *exec_all(char *in_out[], char ***cmd, int *n, int phone, int conv) {
 	return NULL;
 }
 
-
+/*
 void kill_pid(int *pid, int n) {
 	for(int i = 0; i < n; i++) {
 		if((kill(pid[i], 0) != 0))
-			kill(pid[i], SIGKILL/*, SIGTERM*/);
+			kill(pid[i], SIGKILL);
 	}
+}
+*/
+void handler(int signo) {
+	puts("received SIGINT");
+	kill(getpid(), SIGKILL);
 }
 
 int main(int argc, char **argv)
@@ -223,15 +220,18 @@ int main(int argc, char **argv)
 	char ***all_commands = NULL;
 	char *home = getenv("HOME");
 	int phone = 0, conv = 0;
-	while(/*!exit_proc(all_commands*/1) {
+	while(1) {
 		all_commands = get_commands(in_out, &n, &phone, &conv);
+		signal(SIGINT, handler);
+			sleep(1);
 		if(exit_proc(all_commands))
 			break;
 		int *pid = NULL;
-//		if(!change_directory(all_commands, home))
+		if(!change_directory(all_commands, home)) {
 			 pid = exec_all(in_out, all_commands, &n, phone, conv);
-		if(pid != NULL)
-			kill_pid(pid, n);
+		//	if(pid != NULL)
+		//		kill_pid(pid, n);
+		}
 		all_commands = free_list(all_commands);
 //		all_commands = get_commands(in_out, &n);
 	}
