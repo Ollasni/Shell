@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <signal.h>
 
+int son_pid = -1;
+
 void skip_spaces(char *ch) {
 	while(*ch == ' ')
 		*ch = getchar();
@@ -65,8 +67,8 @@ int change_directory(char ***cmd, char *home)
 		} else {
 			chdir(cmd[0][1]);
 		}
-	printf("%s\n", getcwd(s, 100));
-	return 1;
+		printf("%s\n", getcwd(s, 100));
+		return 1;
 	}
 	return 0;
 }
@@ -85,6 +87,10 @@ char *get_word(char *end, char *sign, int *flag, int *phone, int *conv)
 			*sign = ch;
 			ch = getchar();
 			skip_spaces(&ch);
+		}
+		if(ch == '|' && *flag) {
+			*conv == 2;
+			break;
 		}
 		if(ch == '|') {
 			*flag = 1;
@@ -179,24 +185,32 @@ int exec_single(char **cmd, int input_fd, int output_fd) {
 	return pid;
 }
 
-int *exec_all(char *in_out[], char ***cmd, int *n, int phone, int conv) {
-	int *pid = malloc((*n) * sizeof(int));
-	int pipefd[*n + 1][2];
-	for(int i = 1; i <= *n; i++) {
-		if(i < *n)
+int *exec_all(char *in_out[], char ***cmd, int n, int phone, int conv) {
+	int *pid = malloc((n) * sizeof(int));
+	int pipefd[n + 1][2];
+	pipefd[0][0] = redir_in(in_out[0]);
+	pipefd[n][1] = redir_out(in_out[1]);
+//	pipefd[0][1] = -1;
+//	pipefd[n][0] = -1;
+
+	for(int i = 1; i <= n; i++) {
+		if(i < n)
 			pipe(pipefd[i]);
 		pid[i - 1] = exec_single(cmd[i - 1], pipefd[i - 1][0], pipefd[i - 1][1]);
-		if(i < *n) {
+//		pid[i - 1] = exec_single(cmd[i - 1], pipefd[i - 1][0], pipefd[i][1]);
+		if(i < n) {
 			close(pipefd[i - 1][0]);
 			close(pipefd[i - 1][1]);
 		}
 	}
-//	close(pipefd[*n + 1][0]);
-//	close(pipefd[*n + 1][1]);
+	son_pid = pid[0];
+//	close(pipefd[*n][0]);
+//	close(pipefd[*n][1]);
 	if(phone)
 		return pid;
-	for(int j = 0; j < *n; j++)
-		waitpid(pid[j],  NULL, 0);
+	for(int j = 0; j < n; j++)
+			waitpid(pid[j], NULL, 0);
+	free(pid);
 	return NULL;
 }
 
@@ -210,8 +224,55 @@ void kill_pid(int *pid, int n) {
 */
 void handler(int signo) {
 	puts("received SIGINT");
-	kill(getpid(), SIGKILL);
+	kill(son_pid, SIGKILL);
 }
+
+int conv_and(char ***list, char *in_out[], int n)
+{
+	int fd[2];
+	fd[0] = redir_in(in_out[0]);
+	fd[1] = redir_out(in_out[1]);
+	for(int i = 0; i < n; i++) {
+		if(fork() == 0) {
+			dup2(fd[0], 0);
+			dup2(fd[1], 1);
+			if(execvp(list[0][i], list[i]) < 0) {
+				perror("Exec failed");
+				exit(1);
+			}
+		}
+		int wstatus;
+		wait(&wstatus);
+		printf("%d\n", WEXITSTATUS(wstatus)); 
+		if(wstatus != 0)
+			break;
+		}
+	return 0;
+}
+
+int conv_or(char ***list, char *in_out[], int n)
+{
+	int fd[2];
+	fd[0] = redir_in(in_out[0]);
+	fd[1] = redir_out(in_out[1]);
+	for(int i = 0; i < n; i++) {
+		if(fork() == 0) {
+			dup2(fd[0], 0);
+			dup2(fd[1], 1);
+			if(execvp(list[0][i], list[i]) < 0) {
+				perror("Exec failed");
+				exit(1);
+			}
+		}
+		int wstatus;
+		wait(&wstatus);
+		printf("%d\n", WEXITSTATUS(wstatus)); 
+		if(wstatus == 0)
+			break;
+		}
+	return 0;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -220,19 +281,27 @@ int main(int argc, char **argv)
 	char ***all_commands = NULL;
 	char *home = getenv("HOME");
 	int phone = 0, conv = 0;
+	signal(SIGINT, handler);
 	while(1) {
 		all_commands = get_commands(in_out, &n, &phone, &conv);
-		signal(SIGINT, handler);
-			sleep(1);
 		if(exit_proc(all_commands))
 			break;
 		int *pid = NULL;
 		if(!change_directory(all_commands, home)) {
-			 pid = exec_all(in_out, all_commands, &n, phone, conv);
+			if(!conv) {
+			 pid = exec_all(in_out, all_commands, n, phone, conv);
 		//	if(pid != NULL)
 		//		kill_pid(pid, n);
+			}
+			else if(conv == 1) {
+				conv_and(all_commands, in_out, n);
+			}
+			else if(conv == 2) {
+				conv_or(all_commands, in_out, n);
+			}
 		}
 		all_commands = free_list(all_commands);
+		phone = 0, conv = 0;
 //		all_commands = get_commands(in_out, &n);
 	}
 	all_commands = free_list(all_commands);
