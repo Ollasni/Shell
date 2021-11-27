@@ -173,10 +173,14 @@ int exec_single(char **cmd, int input_fd, int output_fd) {
 	pid_t pid;
 	pid = fork();
 	if(pid == 0) {
-		dup2(input_fd, 0);
-		dup2(output_fd, 1);
-		close(input_fd);
-		close(output_fd);
+		if(input_fd != 0) {
+			dup2(input_fd, 0);
+			close(input_fd);
+		}
+		if(output_fd != 1) {
+			dup2(output_fd, 1);
+			close(output_fd);
+		}
 		if(execvp(cmd[0], cmd) < 0) {
 			perror("Exec failed");
 			exit(1);
@@ -190,22 +194,20 @@ int *exec_all(char *in_out[], char ***cmd, int n, int phone, int conv) {
 	int pipefd[n + 1][2];
 	pipefd[0][0] = redir_in(in_out[0]);
 	pipefd[n][1] = redir_out(in_out[1]);
-//	pipefd[0][1] = -1;
-//	pipefd[n][0] = -1;
 
 	for(int i = 1; i <= n; i++) {
-		if(i < n)
-			pipe(pipefd[i]);
-		pid[i - 1] = exec_single(cmd[i - 1], pipefd[i - 1][0], pipefd[i - 1][1]);
-//		pid[i - 1] = exec_single(cmd[i - 1], pipefd[i - 1][0], pipefd[i][1]);
 		if(i < n) {
+			pipe(pipefd[i]);
+		}
+		pid[i - 1] = exec_single(cmd[i - 1], pipefd[i - 1][0], pipefd[i - 0][1]);
+		if(pipefd[i - 1][0] != 0) {
 			close(pipefd[i - 1][0]);
-			close(pipefd[i - 1][1]);
+		}
+		if(pipefd[i - 0][1] != 1) {
+			close(pipefd[i - 0][1]);
 		}
 	}
 	son_pid = pid[0];
-//	close(pipefd[*n][0]);
-//	close(pipefd[*n][1]);
 	if(phone)
 		return pid;
 	for(int j = 0; j < n; j++)
@@ -281,7 +283,7 @@ int main(int argc, char **argv)
 	char ***all_commands = NULL;
 	char *home = getenv("HOME");
 	int phone = 0, conv = 0;
-	signal(SIGINT, handler);
+//	signal(SIGINT, handler);
 	while(1) {
 		all_commands = get_commands(in_out, &n, &phone, &conv);
 		if(exit_proc(all_commands))
