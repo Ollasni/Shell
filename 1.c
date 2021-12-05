@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <signal.h>
 
+
 int son_pid = -1;
 
 void skip_spaces(char *ch) {
@@ -23,6 +24,7 @@ char ***free_list(char ***text) {
 	}
 	free(text);
 }
+
 
 char **free_in_out(char **text) {
 	int ind = 0;
@@ -96,9 +98,22 @@ char *get_word(char *end, char *sign, int *flag, int *phone, int *conv)
 			ch = getchar();
 			skip_spaces(&ch);
 		}
+		if(ch == '|' && *flag == 1) {
+			*conv = 2;
+			break;
+		}
 		if(ch == '|') {
 			*flag = 1;
+		}
+		if(ch == '&' && *phone == 1) {
+			*conv = 1;
+			*phone = 0;
+			*flag = 1;
 			break;
+		}
+		if(ch == '&') {
+			*phone = 1;
+			*flag = 1;
 		}
 		word = realloc(word, (len_w + 1) * sizeof(char));
 		word[len_w++] = ch;
@@ -218,8 +233,10 @@ int *exec_all(char *in_out[], char ***cmd, int n, int phone, int conv) {
 		}
 	}
 	son_pid = pid[0];
-	if(phone)
+	if(phone) {
+		printf("phonov rej\n");
 		return pid;
+	}
 	for(int j = 0; j < n; j++)
 			waitpid(pid[j], NULL, 0);
 	free(pid);
@@ -239,6 +256,45 @@ void handler(int signo) {
 	kill(son_pid, SIGKILL);
 }
 
+int conv_and(char ***list, int n)
+{
+    for(int i = 0; i < n; i++) {
+		pid_t pid = fork();
+        if(pid == 0) {
+            if(execvp(list[i][0], list[i]) < 0) {
+                perror("Exec failed");
+                exit(1);
+            }
+        }
+		int wstatus;
+		waitpid(pid, &wstatus, 0);
+		if(WIFEXITED(wstatus == 0)) {
+			break;
+		}
+    }
+    return 0;
+}
+
+
+int conv_or(char ***list, int n)
+{
+	for(int i = 0; i < n; i++) {
+		pid_t pid = fork();
+        if(pid == 0) {
+			if(execvp(list[i][0], list[i]) < 0) {
+				perror("Exec failed");
+				exit(1);
+			}
+		}
+		int wstatus;
+		waitpid(pid, &wstatus, 0);
+		if(WIFEXITED(wstatus != 0)) {
+			break;
+		}
+	}
+	return 0;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -246,18 +302,26 @@ int main(int argc, char **argv)
 	char ***all_commands = NULL;
 	char *home = getenv("HOME");
 	int phone = 0, conv = 0;
-	signal(SIGINT, handler);
+//	signal(SIGINT, handler);
 	while(1) {
 		char *in_out[] = {NULL, NULL};
 		all_commands = get_commands(in_out, &n, &phone, &conv);
-		putline(all_commands);
+//		putline(all_commands);
 		if(exit_proc(all_commands))
 			break;
 		int *pid = NULL;
 		if(!change_directory(all_commands, home)) {
+			if(!conv) {
 			 pid = exec_all(in_out, all_commands, n, phone, conv);
 			if(pid != NULL)
 				kill_pid(pid, n);
+			}
+			else if(conv == 1) {
+				conv_and(all_commands, n);
+			}
+			else if(conv == 2) {
+				conv_or(all_commands, n);
+			}
 		}
 		all_commands = free_list(all_commands);
     	free(in_out[0]);
