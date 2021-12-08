@@ -7,10 +7,13 @@ This program implements the execution of kernel commands. This is a prototype of
 
 ## 2.Stages ##
   There are 9 stages:
-    - ### Tokenization ###
-    - ### Standard start ###
+  
+    - Tokenization
+    
+    - Standard start
     - I / O redirection
       `` f.e. ls -l > 1.txt``
+      
     - Pipeline for two command
        `` f.e ls | wc``
     - Pipeline for arbitrary number of command
