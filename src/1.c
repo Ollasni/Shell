@@ -1,4 +1,3 @@
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -11,6 +10,12 @@
 
 
 int son_pid = -1;
+
+enum conv_type {
+		CONV_PIPE,
+		CONV_AND,
+		CONV_OR,
+};
 
 void skip_spaces(char *ch) {
 	while(*ch == ' ')
@@ -29,11 +34,11 @@ char ***free_list(char ***text) {
 
 char **free_in_out(char **text) {
 	int ind = 0;
-    while(text[ind] != NULL) {
-        free(text[ind++]);
-    }
-    free(text[ind]);
-    free(text);
+	while(text[ind] != NULL) {
+		free(text[ind++]);
+	}
+	free(text[ind]);
+	free(text);
 }
 
 int exit_proc(char ***list)
@@ -87,8 +92,8 @@ int change_directory(char ***cmd, char *home)
 
 char *get_word(char *end, char *sign, int *flag, int *phone, int *conv)
 {
-    size_t len_w = 0;
-    char *word = NULL, ch;
+	size_t len_w = 0;
+	char *word = NULL, ch;
 	ch = getchar();
 	skip_spaces(&ch);
 	while(1) {
@@ -181,11 +186,11 @@ char ***get_commands(char *in_out[], int *num_com, int *phone, int *conv)
 		char sign = 0, end = 0;
 		text = get_list(&sign, in_out, &end, phone, conv);
 		while(1) {
-        	all_com = realloc(all_com, (*num_com + 1) * sizeof(char**));
-        	all_com[(*num_com)++] = text;
+			all_com = realloc(all_com, (*num_com + 1) * sizeof(char**));
+			all_com[(*num_com)++] = text;
 			if(end == '\n')
 				break;
-        	sign = 0;
+			sign = 0;
 			text = get_list(&sign, in_out, &end, phone, conv);
 
     }
@@ -239,7 +244,7 @@ int *exec_all(char *in_out[], char ***cmd, int n, int phone, int conv) {
 		return pid;
 	}
 	for(int j = 0; j < n; j++)
-			waitpid(pid[j], NULL, 0);
+		waitpid(pid[j], NULL, 0);
 	free(pid);
 	return NULL;
 }
@@ -247,7 +252,7 @@ int *exec_all(char *in_out[], char ***cmd, int n, int phone, int conv) {
 
 void kill_pid(int *pid, int n) {
 	for(int i = 0; i < n; i++) {
-		if((kill(pid[i], 0) != 0))
+//		if((kill(pid[i], 0) != 0))
 			kill(pid[i], SIGKILL);
 	}
 }
@@ -259,10 +264,10 @@ void handler(int signo) {
 
 int conv_and(char ***list, int n)
 {
-    for(int i = 0; i < n; i++) {
+	for(int i = 0; i < n; i++) {
 		pid_t pid = fork();
-        if(pid == 0) {
-            if(execvp(list[i][0], list[i]) < 0) {
+		if(pid == 0) {
+			if(execvp(list[i][0], list[i]) < 0) {
                 perror("Exec failed");
                 exit(1);
             }
@@ -281,7 +286,7 @@ int conv_or(char ***list, int n)
 {
 	for(int i = 0; i < n; i++) {
 		pid_t pid = fork();
-        if(pid == 0) {
+		if(pid == 0) {
 			if(execvp(list[i][0], list[i]) < 0) {
 				perror("Exec failed");
 				exit(1);
@@ -312,21 +317,21 @@ int main(int argc, char **argv)
 			break;
 		int *pid = NULL;
 		if(!change_directory(all_commands, home)) {
-			if(!conv) {
+			if(conv == CONV_PIPE) {
 			 pid = exec_all(in_out, all_commands, n, phone, conv);
 			if(pid != NULL)
 				kill_pid(pid, n);
 			}
-			else if(conv == 1) {
+			else if(conv == CONV_AND) {
 				conv_and(all_commands, n);
 			}
-			else if(conv == 2) {
+			else if(conv == CONV_OR) {
 				conv_or(all_commands, n);
 			}
 		}
 		all_commands = free_list(all_commands);
-    	free(in_out[0]);
-    	free(in_out[1]);
+		free(in_out[0]);
+		free(in_out[1]);
 		phone = 0, conv = 0;
 	}
 	all_commands = free_list(all_commands);
