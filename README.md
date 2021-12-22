@@ -14,12 +14,15 @@ use Makefile
       f.e.  `` ls -l > 1.txt``
   4. Pipeline for two command  
       f.e `` ls | wc``
-  5. Pipeline for arbitrary number of command      f.e. `` ls | wc > 2.txt | pwd ``
-  6.  Background mode       f.e. `` ls &
+  5. Pipeline for arbitrary number of command  
+      f.e. `` ls | wc > 2.txt | pwd ``
+  6.  Background mode       
+      f.e. `` ls &
             date``
   7. Change directory 
       f.e. `` cd - or cd or cd home``
-  8. Pipeline && and or||       f.e.  ``pwd && ls
+  8. Pipeline && and or||
+      f.e.  ``pwd && ls
             pwd || ls ``
   9. Ctrl + C
 
