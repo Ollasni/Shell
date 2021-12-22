@@ -8,8 +8,8 @@ use Makefile
 ## 2.Stages ##
   There are 9 stages:
   
-    - Tokenization
-    - Standard start
+  1. Tokenization
+  2. Standard start
     - I / O redirection
       f.e.  `` ls -l > 1.txt``
     - Pipeline for two command
